@@ -4,4 +4,4 @@ build/
 *.iml
 .DS_Store
 .env
-
+/LEARNING_GUIDE.md
