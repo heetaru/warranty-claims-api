@@ -1,0 +1,27 @@
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/warranty_claims}
+    username: ${DB_USER:claims}
+    password: ${DB_PASSWORD:claims}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
+
+app:
+  auth:
+    applicant-password: ${APP_APPLICANT_PASSWORD:demo-applicant}
+    reviewer-password: ${APP_REVIEWER_PASSWORD:demo-reviewer}
+  soap:
+    url: ${SOAP_URL:http://localhost:8081/soap/warranties}
+  s3:
+    endpoint: ${S3_ENDPOINT:http://localhost:9000}
+    region: ${S3_REGION:us-east-1}
+    bucket: ${S3_BUCKET:claim-documents}
+    access-key: ${S3_ACCESS_KEY:minioadmin}
+    secret-key: ${S3_SECRET_KEY:minioadmin}
+
