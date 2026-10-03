@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/warranty_claims}
+    url: ${DB_URL:jdbc:postgresql://localhost:5434/warranty_claims}
     username: ${DB_USER:claims}
     password: ${DB_PASSWORD:claims}
   jpa:

@@ -27,6 +27,25 @@ docker compose ps
 
 The API runs at `http://localhost:8080`. PostgreSQL is mapped to port `5434`, S3Mock to `9090`, and the SOAP stub to `8081`. The SOAP contract is available at `http://localhost:8081/soap/warranties?wsdl`.
 
+### Run the application from IntelliJ IDEA
+
+If you want to debug Java code in IntelliJ, start only the supporting services:
+
+```bash
+docker compose up -d db s3mock soap
+```
+
+Open this project in IntelliJ and run `WarrantyClaimsApplication`. In **Run → Edit Configurations**, set these environment variables for that run configuration:
+
+```text
+APP_APPLICANT_PASSWORD=demo-applicant
+APP_REVIEWER_PASSWORD=demo-reviewer
+```
+
+The default database address for a host-side run is `localhost:5434`, with the demo user and password `claims` / `claims`. This is the host port mapped to this project's database container. Port `5432` may belong to another PostgreSQL instance. SOAP and S3Mock use `localhost:8081` and `localhost:9090` by default. If you already started the full stack, stop only its application container with `docker compose stop app` before launching the app in IntelliJ, so port `8080` is free.
+
+If Flyway reports `password authentication failed for user "claims"`, check the JDBC URL in the run configuration: it must point to `localhost:5434/warranty_claims`, not `localhost:5432/warranty_claims`. Also check that the `db` container is running with `docker compose ps`. Do not delete Docker volumes just to troubleshoot a port mismatch.
+
 Demo users:
 
 | Role | Username | Password |
