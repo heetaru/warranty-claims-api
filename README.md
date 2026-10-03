@@ -1,125 +1,41 @@
 # Warranty Claims API
 
-A small Java backend for product warranty claims. An applicant opens a claim and uploads a PDF or image as evidence. The application checks the warranty through a SOAP service. A reviewer can then approve or reject a submitted claim.
+A small Spring Boot API for product warranty claims. An applicant creates a claim, uploads proof, and submits it for a warranty check. A reviewer then approves or rejects it. There is no frontend; use Postman or another HTTP client.
 
-This portfolio demo explores a REST → SOAP integration and S3 document storage. It is not a production insurance or warranty system.
+The API uses PostgreSQL for claim data, S3-compatible storage for files, and SOAP for the warranty check. Docker Compose runs local S3 and SOAP test services, not real external providers.
 
-## What is inside
-
-- Java 21, Spring Boot 4.1, Spring Web MVC, Spring Data JPA
-- PostgreSQL and Flyway SQL migrations
-- Spring Web Services client for a WSDL-defined SOAP operation
-- AWS SDK for Java 2.x for S3-compatible document storage
-- Spring Security with two demo users and HTTP Basic authentication
-- JUnit 5, Mockito and Spring Web Services client tests
-- Docker Compose for PostgreSQL, an S3-compatible test server and a SOAP stub
-
-The local S3 server is [Adobe S3Mock](https://github.com/adobe/S3Mock). It implements the S3 API for development and tests and starts with the `claim-documents` bucket. The Java code uses the AWS S3 SDK. Set `S3_ENDPOINT` to another compatible endpoint, or to an empty value for the SDK's AWS endpoint; provision the bucket first. The local SOAP service is a WireMock stub; its [WSDL](wiremock/__files/warranty.wsdl) shows the contract used by the client.
-
-## Run locally
-
-Requirements: Docker with Compose. The first build downloads images and Gradle dependencies.
+## Run
 
 ```bash
 docker compose up --build -d
-docker compose ps
 ```
 
-The API runs at `http://localhost:8080`. PostgreSQL is mapped to port `5434`, S3Mock to `9090`, and the SOAP stub to `8081`. The SOAP contract is available at `http://localhost:8081/soap/warranties?wsdl`.
-
-### Run the application from IntelliJ IDEA
-
-If you want to debug Java code in IntelliJ, start only the supporting services:
-
-```bash
-docker compose up -d db s3mock soap
-```
-
-Open this project in IntelliJ and run `WarrantyClaimsApplication`. In **Run → Edit Configurations**, set these environment variables for that run configuration:
-
-```text
-APP_APPLICANT_PASSWORD=demo-applicant
-APP_REVIEWER_PASSWORD=demo-reviewer
-```
-
-The default database address for a host-side run is `localhost:5434`, with the demo user and password `claims` / `claims`. This is the host port mapped to this project's database container. Port `5432` may belong to another PostgreSQL instance. SOAP and S3Mock use `localhost:8081` and `localhost:9090` by default. If you already started the full stack, stop only its application container with `docker compose stop app` before launching the app in IntelliJ, so port `8080` is free.
-
-If Flyway reports `password authentication failed for user "claims"`, check the JDBC URL in the run configuration: it must point to `localhost:5434/warranty_claims`, not `localhost:5432/warranty_claims`. Also check that the `db` container is running with `docker compose ps`. Do not delete Docker volumes just to troubleshoot a port mismatch.
-
-Demo users:
+API: `http://localhost:8080`
 
 | Role | Username | Password |
 | --- | --- | --- |
 | Applicant | `applicant` | `demo-applicant` |
 | Reviewer | `reviewer` | `demo-reviewer` |
 
-These passwords are for the local demo only. The application requires `APP_APPLICANT_PASSWORD` and `APP_REVIEWER_PASSWORD` to be set; Compose supplies the demo values. Set them to different values before running the application outside this demo stack. HTTP Basic also needs HTTPS in a real deployment.
+## Test with Postman
 
-### Try the complete flow
+Import [the Postman collection](postman/Warranty%20Claims%20API.postman_collection.json). Send its requests in order:
 
-1. Create a claim with the active demo warranty `POL-1001`:
+1. **Create active claim** → `DRAFT`; the collection saves the claim ID.
+2. **Upload proof** → select [demo-proof.png](postman/demo-proof.png) as the `file` in Body → form-data.
+3. **Submit claim** → the SOAP check accepts `POL-1001`, so the status becomes `SUBMITTED`.
+4. **Approve claim** in the Reviewer folder → `APPROVED`.
 
-   ```bash
-   curl -u applicant:demo-applicant -H 'Content-Type: application/json' \
-     -d '{"warrantyNumber":"POL-1001","description":"Laptop screen stopped working"}' \
-     http://localhost:8080/api/claims
-   ```
+`POL-0000` returns an inactive warranty; `POL-FAIL` triggers a SOAP fault. Uploaded files must be PDF, PNG, or JPEG, up to 5 MB.
 
-2. Upload a real PDF, PNG or JPEG (up to 5 MB). Use the claim ID from step 1:
+## Run Java from IntelliJ IDEA
 
-   ```bash
-   curl -u applicant:demo-applicant \
-     -F 'file=@/path/to/proof.pdf;type=application/pdf' \
-     http://localhost:8080/api/claims/1/documents
-   ```
+Start only the supporting services with `docker compose up -d db s3mock soap`. Run `WarrantyClaimsApplication` with `APP_APPLICANT_PASSWORD=demo-applicant` and `APP_REVIEWER_PASSWORD=demo-reviewer` in its run configuration. The database uses `localhost:5434`; port `5432` may belong to another project. Stop the Compose `app` service first if it already occupies port `8080`.
 
-3. Submit the claim. This calls the SOAP warranty service:
-
-   ```bash
-   curl -u applicant:demo-applicant -X POST \
-     http://localhost:8080/api/claims/1/submit
-   ```
-
-4. Review it:
-
-   ```bash
-   curl -u reviewer:demo-reviewer -H 'Content-Type: application/json' \
-     -d '{"decision":"APPROVED"}' \
-     http://localhost:8080/api/claims/1/decision
-   ```
-
-The stub returns an expired warranty for other numbers such as `POL-0000`. `POL-FAIL` returns a SOAP fault; the API responds with `502` and leaves the claim in `DRAFT`.
-
-## REST endpoints
-
-| Method | Path | Purpose |
-| --- | --- | --- |
-| `POST` | `/api/claims` | Create a draft claim (applicant) |
-| `GET` | `/api/claims` | List own claims; reviewer lists all |
-| `GET` | `/api/claims/{id}` | Read one accessible claim |
-| `POST` | `/api/claims/{id}/documents` | Upload evidence to S3 (applicant, draft only) |
-| `GET` | `/api/claims/{id}/documents` | List evidence metadata |
-| `GET` | `/api/claims/{id}/documents/{documentId}` | Download evidence |
-| `POST` | `/api/claims/{id}/submit` | Verify warranty through SOAP and submit |
-| `POST` | `/api/claims/{id}/decision` | Approve or reject (reviewer) |
-
-Statuses: `DRAFT` → `SUBMITTED` → `APPROVED` or `REJECTED`. An inactive warranty makes the claim `REJECTED` during submission. A claim needs at least one document before submission.
-
-## Tests and configuration
+## Tests
 
 ```bash
 ./gradlew test
 ```
 
-Tests cover claim state rules, access to another applicant's claim, file type checks, S3 upload calls and SOAP response handling. The full Compose flow can also be exercised with the commands above.
-
-Configuration is in [`application.yml`](src/main/resources/application.yml). Environment variables let you change the database, SOAP URL, S3 endpoint, bucket, credentials and demo passwords. The database schema is created by Flyway, while Hibernate checks that the entities match it.
-
-## Limits of this demo
-
-- Authentication uses two in-memory demo accounts. Real accounts should use a dedicated identity provider, HTTPS and proper user management.
-- S3Mock and WireMock are local test doubles. This project does not claim to run on AWS or integrate with a real warranty provider.
-- A file upload writes to S3 before saving metadata in PostgreSQL. If metadata saving fails, the code attempts to remove the object; this is a best-effort compensation, not a distributed transaction.
-- Documents are limited to 5 MB and checked by MIME type and file signature. Production file handling would also need malware scanning and stronger content validation.
-
-Stop the local services with `docker compose down`. Add `-v` only if you intentionally want to remove the demo database and S3 data.
+Stop the local stack with `docker compose down`. This keeps the demo data in Docker volumes.

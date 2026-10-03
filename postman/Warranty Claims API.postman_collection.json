@@ -1,0 +1,249 @@
+{
+  "info": {
+    "name": "Warranty Claims API",
+    "description": "Run requests 1–7 in order. Select a local PNG/PDF/JPEG file in request 2 before sending it. All accounts and passwords are for the local Docker demo only.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Applicant",
+      "auth": {
+        "type": "basic",
+        "basic": [
+          {
+            "key": "username",
+            "value": "applicant",
+            "type": "string"
+          },
+          {
+            "key": "password",
+            "value": "demo-applicant",
+            "type": "string"
+          }
+        ]
+      },
+      "item": [
+        {
+          "name": "1 Create active claim",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/claims",
+            "description": "Creates a DRAFT claim. The response script saves its ID as claimId.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"warrantyNumber\": \"POL-1001\",\n  \"description\": \"Laptop screen stopped working\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Claim created\", function () { pm.response.to.have.status(201); });",
+                  "const claim = pm.response.json();",
+                  "pm.test(\"Status is DRAFT\", function () { pm.expect(claim.status).to.eql(\"DRAFT\"); });",
+                  "pm.collectionVariables.set(\"claimId\", String(claim.id));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2 Upload proof",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/claims/{{claimId}}/documents",
+            "description": "In Body → form-data, select the local postman/demo-proof.png file for the file field before sending. The response script saves documentId.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Document uploaded\", function () { pm.response.to.have.status(201); });",
+                  "const document = pm.response.json();",
+                  "pm.collectionVariables.set(\"documentId\", String(document.id));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3 List documents",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/claims/{{claimId}}/documents",
+            "description": "Lists file metadata stored in PostgreSQL for this claim."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Documents returned\", function () { pm.response.to.have.status(200); pm.expect(pm.response.json()).to.be.an(\"array\").that.is.not.empty; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4 Download proof",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/claims/{{claimId}}/documents/{{documentId}}",
+            "description": "Returns the bytes stored through the S3 API. Use Save Response if you want a local copy."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Document downloaded\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "5 Submit claim",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/claims/{{claimId}}/submit",
+            "description": "Calls the SOAP warranty service. POL-1001 is active, so the claim becomes SUBMITTED."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Warranty accepted\", function () { pm.response.to.have.status(200); pm.expect(pm.response.json().status).to.eql(\"SUBMITTED\"); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Reviewer",
+      "auth": {
+        "type": "basic",
+        "basic": [
+          {
+            "key": "username",
+            "value": "reviewer",
+            "type": "string"
+          },
+          {
+            "key": "password",
+            "value": "demo-reviewer",
+            "type": "string"
+          }
+        ]
+      },
+      "item": [
+        {
+          "name": "6 Approve claim",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/claims/{{claimId}}/decision",
+            "description": "Only the reviewer account can make this decision.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"decision\": \"APPROVED\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Claim approved\", function () { pm.response.to.have.status(200); pm.expect(pm.response.json().status).to.eql(\"APPROVED\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "7 Get final claim",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/claims/{{claimId}}",
+            "description": "Shows the final claim status and timestamps."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Final status is APPROVED\", function () { pm.response.to.have.status(200); pm.expect(pm.response.json().status).to.eql(\"APPROVED\"); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "claimId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "documentId",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
