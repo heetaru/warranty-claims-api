@@ -22,6 +22,8 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(HttpMethod.POST, "/api/claims/*/decision").hasRole("REVIEWER")
+                        .requestMatchers(HttpMethod.POST, "/api/claims/*/submit").hasRole("APPLICANT")
+                        .requestMatchers(HttpMethod.POST, "/api/claims").hasRole("APPLICANT")
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().permitAll())
                 .httpBasic(Customizer.withDefaults());
@@ -45,4 +47,3 @@ public class SecurityConfig {
         );
     }
 }
-
