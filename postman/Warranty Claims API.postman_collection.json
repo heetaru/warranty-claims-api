@@ -66,14 +66,13 @@
             "method": "POST",
             "header": [],
             "url": "{{baseUrl}}/api/claims/{{claimId}}/documents",
-            "description": "In Body → form-data, select the local postman/demo-proof.png file for the file field before sending. The response script saves documentId.",
+          "description": "In Body → form-data, set the file field to File and select the exact postman/demo-proof.png file before sending. Do not select the postman folder. The response script saves documentId.",
             "body": {
               "mode": "formdata",
               "formdata": [
                 {
                   "key": "file",
-                  "type": "file",
-                  "src": ""
+                  "type": "file"
                 }
               ]
             }
