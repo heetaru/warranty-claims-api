@@ -1,6 +1,7 @@
 package com.stanislav.warrantyclaims.soap;
 
 import com.stanislav.warrantyclaims.common.ApiException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.webservices.client.WebServiceTemplateBuilder;
 import org.springframework.http.HttpStatus;
@@ -8,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.ws.client.WebServiceClientException;
 import org.springframework.ws.client.core.WebServiceTemplate;
 import org.springframework.ws.soap.client.core.SoapActionCallback;
+import org.springframework.ws.transport.http.HttpUrlConnectionMessageSender;
 import org.springframework.xml.transform.StringResult;
 import org.springframework.xml.transform.StringSource;
 import org.w3c.dom.Document;
@@ -17,6 +19,7 @@ import org.xml.sax.InputSource;
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.StringReader;
+import java.time.Duration;
 
 @Service
 public class WarrantySoapClient implements WarrantyGateway {
@@ -25,14 +28,27 @@ public class WarrantySoapClient implements WarrantyGateway {
     private final WebServiceTemplate template;
     private final String url;
 
+    @Autowired
     public WarrantySoapClient(WebServiceTemplateBuilder builder, @Value("${app.soap.url}") String url) {
         this.template = builder.build();
+        HttpUrlConnectionMessageSender sender = new HttpUrlConnectionMessageSender();
+        sender.setConnectionTimeout(Duration.ofSeconds(3));
+        sender.setReadTimeout(Duration.ofSeconds(5));
+        this.template.setMessageSender(sender);
+        this.url = url;
+    }
+
+    WarrantySoapClient(WebServiceTemplate template, String url) {
+        this.template = template;
         this.url = url;
     }
 
     // The payload is placed inside the SOAP envelope by Spring Web Services.
     @Override
     public WarrantyCheck check(String warrantyNumber) {
+        if (warrantyNumber == null || !warrantyNumber.matches("[A-Za-z0-9-]{1,60}")) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid warranty number");
+        }
         String request = """
                 <war:CheckWarrantyRequest xmlns:war="urn:stanislav:warranty">
                     <war:warrantyNumber>%s</war:warrantyNumber>
@@ -82,4 +98,3 @@ public class WarrantySoapClient implements WarrantyGateway {
         }
     }
 }
-

@@ -90,7 +90,9 @@ public class DocumentService {
         }
         String name = original.replace('\\', '/');
         name = name.substring(name.lastIndexOf('/') + 1).replaceAll("[\\r\\n]", "_");
+        if (name.isBlank()) {
+            return "document";
+        }
         return name.length() > 255 ? name.substring(name.length() - 255) : name;
     }
 }
-

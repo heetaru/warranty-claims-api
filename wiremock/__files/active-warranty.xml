@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <war:CheckWarrantyResponse xmlns:war="urn:stanislav:warranty">
+      <war:active>true</war:active>
+      <war:reason>Warranty is active</war:reason>
+    </war:CheckWarrantyResponse>
+  </soap:Body>
+</soap:Envelope>
+

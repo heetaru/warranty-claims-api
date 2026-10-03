@@ -1,0 +1,12 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "/soap/warranties?wsdl"
+  },
+  "response": {
+    "status": 200,
+    "headers": { "Content-Type": "text/xml; charset=utf-8" },
+    "bodyFileName": "warranty.wsdl"
+  }
+}
+

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+                  xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+                  xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+                  xmlns:tns="urn:stanislav:warranty"
+                  targetNamespace="urn:stanislav:warranty"
+                  name="WarrantyService">
+  <wsdl:types>
+    <xsd:schema targetNamespace="urn:stanislav:warranty" elementFormDefault="qualified">
+      <xsd:element name="CheckWarrantyRequest">
+        <xsd:complexType><xsd:sequence>
+          <xsd:element name="warrantyNumber" type="xsd:string"/>
+        </xsd:sequence></xsd:complexType>
+      </xsd:element>
+      <xsd:element name="CheckWarrantyResponse">
+        <xsd:complexType><xsd:sequence>
+          <xsd:element name="active" type="xsd:boolean"/>
+          <xsd:element name="reason" type="xsd:string"/>
+        </xsd:sequence></xsd:complexType>
+      </xsd:element>
+    </xsd:schema>
+  </wsdl:types>
+  <wsdl:message name="CheckWarrantyInput">
+    <wsdl:part name="parameters" element="tns:CheckWarrantyRequest"/>
+  </wsdl:message>
+  <wsdl:message name="CheckWarrantyOutput">
+    <wsdl:part name="parameters" element="tns:CheckWarrantyResponse"/>
+  </wsdl:message>
+  <wsdl:portType name="WarrantyPortType">
+    <wsdl:operation name="CheckWarranty">
+      <wsdl:input message="tns:CheckWarrantyInput"/>
+      <wsdl:output message="tns:CheckWarrantyOutput"/>
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="WarrantyBinding" type="tns:WarrantyPortType">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <wsdl:operation name="CheckWarranty">
+      <soap:operation soapAction="urn:checkWarranty"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="WarrantyService">
+    <wsdl:port name="WarrantyPort" binding="tns:WarrantyBinding">
+      <soap:address location="http://localhost:8081/soap/warranties"/>
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>
+

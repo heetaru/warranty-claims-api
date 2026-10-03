@@ -14,14 +14,13 @@ spring:
 
 app:
   auth:
-    applicant-password: ${APP_APPLICANT_PASSWORD:demo-applicant}
-    reviewer-password: ${APP_REVIEWER_PASSWORD:demo-reviewer}
+    applicant-password: ${APP_APPLICANT_PASSWORD}
+    reviewer-password: ${APP_REVIEWER_PASSWORD}
   soap:
     url: ${SOAP_URL:http://localhost:8081/soap/warranties}
   s3:
-    endpoint: ${S3_ENDPOINT:http://localhost:9000}
+    endpoint: ${S3_ENDPOINT:http://localhost:9090}
     region: ${S3_REGION:us-east-1}
     bucket: ${S3_BUCKET:claim-documents}
-    access-key: ${S3_ACCESS_KEY:minioadmin}
-    secret-key: ${S3_SECRET_KEY:minioadmin}
-
+    access-key: ${S3_ACCESS_KEY:demo}
+    secret-key: ${S3_SECRET_KEY:demo}
